@@ -3,7 +3,16 @@ import pandas as pd
 import joblib
 
 # Load trained model
-model = joblib.load("../artifacts/model/best_model.pkl")
+
+try:
+    model = joblib.load("../artifacts/model/best_model.pkl") 
+except:
+    pass
+
+try:
+    model = joblib.load("artifacts/model/best_model.pkl")  
+except:
+    pass
 
 # Species mapping
 species_map = {
