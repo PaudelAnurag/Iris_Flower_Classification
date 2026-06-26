@@ -1,36 +1,62 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from pathlib import Path
 
-# Load trained model
+# =====================================================
+# Locate project root (works with both ../ and ./)
+# =====================================================
+root = None
 
-try:
-    model = joblib.load("../artifacts/model/best_model.pkl") 
-except:
-    pass
+for path in [Path(".."), Path(".")]:
+    model_path = path / "artifacts" / "model" / "best_model.pkl"
+    assets_path = path / "artifacts" / "assets"
 
-try:
-    model = joblib.load("artifacts/model/best_model.pkl")  
-except:
-    pass
+    if model_path.exists() and assets_path.exists():
+        root = path
+        break
 
-# Species mapping
+if root is None:
+    raise FileNotFoundError("Could not locate the 'artifacts' directory.")
+
+# =====================================================
+# Load Model
+# =====================================================
+model = joblib.load(root / "artifacts" / "model" / "best_model.pkl")
+
+# Assets directory
+asset_dir = root / "artifacts" / "assets"
+
+# =====================================================
+# Species Mapping
+# =====================================================
 species_map = {
     0: "Iris-setosa",
     1: "Iris-versicolor",
     2: "Iris-virginica"
 }
 
+flower_images = {
+    0: ("iris-setosa.png", "Iris-setosa"),
+    1: ("iris-versicolor.png", "Iris-versicolor"),
+    2: ("iris-virginica.png", "Iris-virginica")
+}
+
+# =====================================================
+# Streamlit UI
+# =====================================================
 st.set_page_config(
     page_title="Iris Flower Classification",
     layout="centered"
 )
 
-st.title("Iris Flower Classification")
+st.title(" Iris Flower Classification")
 
 st.write("Enter the flower measurements below:")
 
-# Input features
+# =====================================================
+# User Inputs
+# =====================================================
 sepal_length = st.number_input(
     "Sepal Length (cm)",
     min_value=0.0,
@@ -59,9 +85,12 @@ petal_width = st.number_input(
     step=0.1
 )
 
+# =====================================================
+# Prediction
+# =====================================================
 if st.button("Predict Species"):
 
-    # Engineered features used during training
+    # Feature Engineering
     sepal_area = sepal_length * sepal_width
     petal_area = petal_length * petal_width
 
@@ -75,26 +104,20 @@ if st.button("Predict Species"):
     })
 
     prediction = model.predict(input_data)[0]
-
     predicted_species = species_map[prediction]
 
-    if (prediction == 0):
-        st.image("../artifacts/assets/iris-setosa.png", caption="Iris-setosa")
-        
-    elif (prediction == 1 ):
-        st.image("../artifacts/assets/iris-versicolor.png", caption="Iris-versicolor")
-        
-    else:
-        st.image("../artifacts/assets/iris-virginica.png", caption="Iris-virginica")
-        
-    st.success(f"Predicted Species: {predicted_species}")
-    
+    # Display flower image
+    filename, caption = flower_images[prediction]
+    st.image(asset_dir / filename, caption=caption, width=300)
 
+    # Display prediction
+    st.success(f"Predicted Species: **{predicted_species}**")
+
+    # Display input features
     st.subheader("Input Features")
-
     st.dataframe(input_data)
 
+    # Display engineered features
     st.subheader("Engineered Features")
-
-    st.write(f"Sepal Area = {sepal_area:.2f}")
-    st.write(f"Petal Area = {petal_area:.2f}")
+    st.write(f"**Sepal Area:** {sepal_area:.2f}")
+    st.write(f"**Petal Area:** {petal_area:.2f}")
